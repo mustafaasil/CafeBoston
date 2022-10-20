@@ -55,6 +55,7 @@
             this.tsmiProduct.Name = "tsmiProduct";
             this.tsmiProduct.Size = new System.Drawing.Size(61, 20);
             this.tsmiProduct.Text = "Product";
+            this.tsmiProduct.Click += new System.EventHandler(this.tsmiProduct_Click);
             // 
             // tsmiOrderHistory
             // 
@@ -96,6 +97,7 @@
             this.MinimumSize = new System.Drawing.Size(616, 532);
             this.Name = "MainForm";
             this.Text = "Cafe Boston";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.msTop.ResumeLayout(false);
             this.msTop.PerformLayout();
             this.ResumeLayout(false);

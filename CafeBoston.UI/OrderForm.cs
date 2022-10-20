@@ -11,8 +11,14 @@ using System.Windows.Forms;
 
 namespace CafeBoston.UI
 {
+
+    public delegate void TableMoveHandler(int oldTableNo, int newTableNo);
+
+
     public partial class OrderForm : Form
     {
+
+        public event TableMoveHandler TableMoving;
 
         private readonly CafeData _db;
         private readonly Order _order;
@@ -22,9 +28,9 @@ namespace CafeBoston.UI
         public OrderForm(CafeData db, Order order)
         {
 
-            _db= db;
-            _order= order;
-            _orderDetails= new BindingList<OrderDetail>(order.OrderDetails);
+            _db = db;
+            _order = order;
+            _orderDetails = new BindingList<OrderDetail>(order.OrderDetails);
             _orderDetails.ListChanged += _orderDetails_ListChanged;
             InitializeComponent();
             dgvOrderDetails.DataSource = _orderDetails;
@@ -41,6 +47,19 @@ namespace CafeBoston.UI
             Text = $"Order (Table {_order.TableNo}) - {_order.StartTime.Value.ToString()}";
             lblTableNo.Text = _order.TableNo.ToString("00");
             lblTotalPrice.Text = _order.TotalPriceTry;
+            LoadEmptyTableNos();
+        }
+
+        private void LoadEmptyTableNos()
+        {
+            cboTableNo.Items.Clear();
+            for (int i = 1; i <= _db.TableCount; i++)
+            {
+                if (!_db.ActiveOrders.Any(x => x.TableNo == i))
+                {
+                    cboTableNo.Items.Add(i);
+                }
+            }
         }
 
         private void LoadProducts()
@@ -50,20 +69,20 @@ namespace CafeBoston.UI
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            Product product =  (Product)cboProduct.SelectedItem;
+            Product product = (Product)cboProduct.SelectedItem;
 
             if (product == null) return;
 
-            var orderDetail = _orderDetails.FirstOrDefault(x=>x.ProductName == product.ProductName);
+            var orderDetail = _orderDetails.FirstOrDefault(x => x.ProductName == product.ProductName);
 
             if (orderDetail == null)
             {
-            _orderDetails.Add(new OrderDetail()
-            {
-                ProductName = product.ProductName,
-                Quantity = (int)nudQuantity.Value,
-                UnitPrice = product.UnitPrice 
-            });
+                _orderDetails.Add(new OrderDetail()
+                {
+                    ProductName = product.ProductName,
+                    Quantity = (int)nudQuantity.Value,
+                    UnitPrice = product.UnitPrice
+                });
 
             }
             else
@@ -86,7 +105,7 @@ namespace CafeBoston.UI
 
         private void CompleteOrder(string message, decimal paidAmount, OrderState newState)
         {
-            DialogResult dr = MessageBox.Show(message,"Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+            DialogResult dr = MessageBox.Show(message, "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
 
             if (dr == DialogResult.Yes)
             {
@@ -95,13 +114,33 @@ namespace CafeBoston.UI
                 _order.EndTime = DateTime.Now;
                 _db.ActiveOrders.Remove(_order);
                 _db.PastOrders.Add(_order);
-                DialogResult=DialogResult.OK;
+                DialogResult = DialogResult.OK;
             }
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
         {
             CompleteOrder("Are you sure that you want to cancel the order ? ", 0, OrderState.Canceled);
+        }
+
+        private void btnMove_Click(object sender, EventArgs e)
+        {
+            if (cboTableNo.SelectedIndex==-1)
+            {
+                return;
+            }
+
+            int target = (int)cboTableNo.SelectedItem;
+            int oldTableNo = _order.TableNo;
+
+            _order.TableNo = target;
+
+            if (TableMoving != null)
+            {
+                TableMoving(oldTableNo,target);
+            }
+
+            UpdateTableInfo();
         }
     }
 }
